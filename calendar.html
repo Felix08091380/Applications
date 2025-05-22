@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Календарь</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f7f9fc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .calendar {
+      background: white;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      width: 320px;
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #4f46e5;
+      color: white;
+      padding: 1em;
+    }
+    .calendar-header button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+    .calendar-body {
+      padding: 1em;
+    }
+    .day-names, .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+    }
+    .day-names div {
+      font-weight: bold;
+      margin-bottom: 0.5em;
+    }
+    .days div {
+      padding: 0.5em;
+      margin: 0.2em;
+      border-radius: 8px;
+    }
+    .days div.today {
+      background-color: #4f46e5;
+      color: white;
+    }
+    .days div:hover {
+      background-color: #e0e7ff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="calendar">
+  <div class="calendar-header">
+    <button onclick="changeMonth(-1)">←</button>
+    <div id="month-year"></div>
+    <button onclick="changeMonth(1)">→</button>
+  </div>
+  <div class="calendar-body">
+    <div class="day-names">
+      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+    </div>
+    <div class="days" id="calendar-days"></div>
+  </div>
+</div>
+
+<script>
+  const monthYearLabel = document.getElementById('month-year');
+  const calendarDays = document.getElementById('calendar-days');
+
+  let currentDate = new Date();
+
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    const startDay = (firstDayOfMonth.getDay() + 6) % 7; // Monday = 0
+    const totalDays = lastDayOfMonth.getDate();
+
+    const today = new Date();
+    const isToday = (d) =>
+      d === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear();
+
+    monthYearLabel.textContent = `${firstDayOfMonth.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
+    calendarDays.innerHTML = '';
+
+    for (let i = 0; i < startDay; i++) {
+      calendarDays.innerHTML += `<div></div>`;
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+      calendarDays.innerHTML += `<div class="${isToday(i) ? 'today' : ''}">${i}</div>`;
+    }
+  }
+
+  function changeMonth(delta) {
+    currentDate.setMonth(currentDate.getMonth() + delta);
+    renderCalendar();
+  }
+
+  renderCalendar();
+</script>
+
+</body>
+</html>
