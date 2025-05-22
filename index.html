@@ -2,20 +2,48 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Часы</title>
+  <title>Часы / Секундомер</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: #0e0e0e;
+      color: #fff;
+      font-family: sans-serif;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       height: 100vh;
-      font-family: sans-serif;
+      overflow: hidden;
     }
 
+    header {
+      margin-top: 1rem;
+    }
+
+    select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #222;
+      color: #fff;
+    }
+
+    .screen {
+      flex: 1;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .active {
+      display: flex;
+    }
+
+    /* Аналоговые часы */
     .clock {
       position: relative;
       width: 300px;
@@ -48,34 +76,9 @@
       border-radius: 4px;
     }
 
-    .hour {
-      width: 6px;
-      height: 70px;
-      background: #ffffffcc;
-      z-index: 3;
-    }
-
-    .minute {
-      width: 4px;
-      height: 100px;
-      background: #4f46e5;
-      z-index: 2;
-    }
-
-    .second {
-      width: 2px;
-      height: 120px;
-      background: #f44336;
-      z-index: 1;
-    }
-
-    .numbers {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-    }
+    .hour { width: 6px; height: 70px; background: #ffffffcc; z-index: 3; }
+    .minute { width: 4px; height: 100px; background: #4f46e5; z-index: 2; }
+    .second { width: 2px; height: 120px; background: #f44336; z-index: 1; }
 
     .number {
       position: absolute;
@@ -84,26 +87,95 @@
       font-weight: bold;
       transform: translate(-50%, -50%);
     }
+
+    /* Цифровые часы */
+    .digital-clock {
+      font-size: 3rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* Секундомер */
+    .stopwatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stopwatch-time {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .stopwatch-buttons button {
+      margin: 0.25rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #4f46e5;
+      color: white;
+    }
+
   </style>
 </head>
 <body>
-  <div class="clock">
-    <div class="center-dot"></div>
-    <div class="hand hour" id="hour"></div>
-    <div class="hand minute" id="minute"></div>
-    <div class="hand second" id="second"></div>
-    <div class="numbers" id="numbers"></div>
+
+  <header>
+    <select id="modeSwitcher">
+      <option value="analog">Аналоговые часы</option>
+      <option value="digital">Цифровые часы</option>
+      <option value="stopwatch">Секундомер</option>
+    </select>
+  </header>
+
+  <!-- Аналоговые часы -->
+  <div class="screen active" id="analog">
+    <div class="clock">
+      <div class="center-dot"></div>
+      <div class="hand hour" id="hourHand"></div>
+      <div class="hand minute" id="minuteHand"></div>
+      <div class="hand second" id="secondHand"></div>
+      <div class="numbers" id="clockNumbers"></div>
+    </div>
+  </div>
+
+  <!-- Цифровые часы -->
+  <div class="screen" id="digital">
+    <div class="digital-clock" id="digitalClock">00:00:00</div>
+  </div>
+
+  <!-- Секундомер -->
+  <div class="screen" id="stopwatch">
+    <div class="stopwatch">
+      <div class="stopwatch-time" id="stopwatchTime">00:00:00.0</div>
+      <div class="stopwatch-buttons">
+        <button id="startStop">Старт</button>
+        <button id="reset">Сброс</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    const hourHand = document.getElementById('hour');
-    const minuteHand = document.getElementById('minute');
-    const secondHand = document.getElementById('second');
-    const numbersContainer = document.getElementById('numbers');
+    const modeSwitcher = document.getElementById('modeSwitcher');
+    const screens = {
+      analog: document.getElementById('analog'),
+      digital: document.getElementById('digital'),
+      stopwatch: document.getElementById('stopwatch')
+    };
 
-    // Расставим цифры 1–12 по окружности
+    modeSwitcher.addEventListener('change', () => {
+      Object.values(screens).forEach(el => el.classList.remove('active'));
+      screens[modeSwitcher.value].classList.add('active');
+    });
+
+    // Аналоговые часы
+    const hourHand = document.getElementById('hourHand');
+    const minuteHand = document.getElementById('minuteHand');
+    const secondHand = document.getElementById('secondHand');
+    const clockNumbers = document.getElementById('clockNumbers');
+
     for (let i = 1; i <= 12; i++) {
-      const angle = (i - 3) * 30 * Math.PI / 180; // сдвиг на -90° (12 наверху)
+      const angle = (i - 3) * 30 * Math.PI / 180;
       const radius = 130;
       const x = 150 + radius * Math.cos(angle);
       const y = 150 + radius * Math.sin(angle);
@@ -112,26 +184,80 @@
       div.style.left = `${x}px`;
       div.style.top = `${y}px`;
       div.textContent = i;
-      numbersContainer.appendChild(div);
+      clockNumbers.appendChild(div);
     }
 
-    function updateClock() {
+    function updateAnalogClock() {
       const now = new Date();
       const h = now.getHours();
       const m = now.getMinutes();
       const s = now.getSeconds();
 
-      const hourDeg = ((h % 12) + m / 60) * 30;
-      const minuteDeg = (m + s / 60) * 6;
-      const secondDeg = s * 6;
-
-      hourHand.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
-      minuteHand.style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
-      secondHand.style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
+      hourHand.style.transform = `translateX(-50%) rotate(${((h % 12) + m / 60) * 30}deg)`;
+      minuteHand.style.transform = `translateX(-50%) rotate(${(m + s / 60) * 6}deg)`;
+      secondHand.style.transform = `translateX(-50%) rotate(${s * 6}deg)`;
     }
 
-    setInterval(updateClock, 1000);
-    updateClock();
+    setInterval(updateAnalogClock, 1000);
+    updateAnalogClock();
+
+    // Цифровые часы
+    const digitalClock = document.getElementById('digitalClock');
+
+    function updateDigitalClock() {
+      const now = new Date();
+      const pad = num => String(num).padStart(2, '0');
+      digitalClock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    }
+
+    setInterval(updateDigitalClock, 1000);
+    updateDigitalClock();
+
+    // Секундомер
+    let stopwatchRunning = false;
+    let stopwatchStart = 0;
+    let elapsed = 0;
+    const stopwatchTime = document.getElementById('stopwatchTime');
+    const startStop = document.getElementById('startStop');
+    const reset = document.getElementById('reset');
+
+    function formatTime(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const msPart = Math.floor((ms % 1000) / 100);
+      const sec = totalSec % 60;
+      const min = Math.floor(totalSec / 60) % 60;
+      const hr = Math.floor(totalSec / 3600);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(hr)}:${pad(min)}:${pad(sec)}.${msPart}`;
+    }
+
+    function updateStopwatch() {
+      if (stopwatchRunning) {
+        const now = Date.now();
+        stopwatchTime.textContent = formatTime(now - stopwatchStart + elapsed);
+      }
+    }
+
+    setInterval(updateStopwatch, 100);
+
+    startStop.addEventListener('click', () => {
+      if (!stopwatchRunning) {
+        stopwatchRunning = true;
+        stopwatchStart = Date.now();
+        startStop.textContent = 'Стоп';
+      } else {
+        stopwatchRunning = false;
+        elapsed += Date.now() - stopwatchStart;
+        startStop.textContent = 'Старт';
+      }
+    });
+
+    reset.addEventListener('click', () => {
+      stopwatchRunning = false;
+      elapsed = 0;
+      stopwatchTime.textContent = '00:00:00.0';
+      startStop.textContent = 'Старт';
+    });
   </script>
 </body>
 </html>
