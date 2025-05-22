@@ -2,132 +2,107 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <title>Записная книжка</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#4f46e5">
-
-  <!-- Для iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="mobile-web-app-capable" content="yes">
-
-  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png">
-
-  <title>Календарь</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #f7f9fc;
-      font-family: 'Segoe UI', sans-serif;
-    }
-    .calendar {
-      height: 100vh;
+      font-family: sans-serif;
+      background: #f5f5f5;
       display: flex;
       flex-direction: column;
+      height: 100vh;
     }
-    .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #4f46e5;
+    header {
+      background: #4f46e5;
       color: white;
-      padding: 1em;
-    }
-    .calendar-header button {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 1.2em;
-      cursor: pointer;
-    }
-    .calendar-body {
-      padding: 1em;
-      flex-grow: 1;
-      overflow: auto;
-    }
-    .day-names, .days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      padding: 1rem;
       text-align: center;
+      font-size: 1.5rem;
     }
-    .day-names div {
-      font-weight: bold;
-      margin-bottom: 0.5em;
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
     }
-    .days div {
-      padding: 0.5em;
-      margin: 0.2em;
+    textarea {
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1rem;
+      border: none;
       border-radius: 8px;
+      resize: none;
+      height: 100px;
+      box-sizing: border-box;
     }
-    .days div.today {
-      background-color: #4f46e5;
+    button {
+      background: #4f46e5;
       color: white;
-    }
-    .days div:hover {
-      background-color: #e0e7ff;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      margin-top: 0.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
       cursor: pointer;
+      width: 100%;
+    }
+    .note {
+      background: white;
+      padding: 0.8rem;
+      margin-top: 0.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
   </style>
 </head>
 <body>
+  <header>Записная книжка</header>
+  <main>
+    <textarea id="noteInput" placeholder="Введите заметку..."></textarea>
+    <button onclick="saveNote()">Сохранить</button>
+    <div id="notesList"></div>
+  </main>
 
-<div class="calendar">
-  <div class="calendar-header">
-    <button onclick="changeMonth(-1)">←</button>
-    <div id="month-year"></div>
-    <button onclick="changeMonth(1)">→</button>
-  </div>
-  <div class="calendar-body">
-    <div class="day-names">
-      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-    </div>
-    <div class="days" id="calendar-days"></div>
-  </div>
-</div>
+  <script>
+    const notesKey = 'notes';
 
-<script>
-  const monthYearLabel = document.getElementById('month-year');
-  const calendarDays = document.getElementById('calendar-days');
-  let currentDate = new Date();
+    function saveNote() {
+      const input = document.getElementById('noteInput');
+      const text = input.value.trim();
+      if (!text) return;
 
-  function renderCalendar() {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDay = (firstDay.getDay() + 6) % 7;
-    const totalDays = lastDay.getDate();
-    const today = new Date();
-
-    monthYearLabel.textContent = `${firstDay.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
-    calendarDays.innerHTML = '';
-
-    for (let i = 0; i < startDay; i++) calendarDays.innerHTML += '<div></div>';
-    for (let i = 1; i <= totalDays; i++) {
-      const isToday = i === today.getDate() &&
-                      month === today.getMonth() &&
-                      year === today.getFullYear();
-      calendarDays.innerHTML += `<div class="${isToday ? 'today' : ''}">${i}</div>`;
+      const notes = JSON.parse(localStorage.getItem(notesKey)) || [];
+      notes.unshift({ text, timestamp: Date.now() });
+      localStorage.setItem(notesKey, JSON.stringify(notes));
+      input.value = '';
+      renderNotes();
     }
-  }
 
-  function changeMonth(delta) {
-    currentDate.setMonth(currentDate.getMonth() + delta);
-    renderCalendar();
-  }
+    function renderNotes() {
+      const notes = JSON.parse(localStorage.getItem(notesKey)) || [];
+      const container = document.getElementById('notesList');
+      container.innerHTML = '';
+      for (const note of notes) {
+        const div = document.createElement('div');
+        div.className = 'note';
+        div.innerHTML = `
+          <div>${note.text}</div>
+          <small>${new Date(note.timestamp).toLocaleString()}</small>
+        `;
+        container.appendChild(div);
+      }
+    }
 
-  renderCalendar();
+    renderNotes();
 
-  // ✅ PWA Service Worker регистрация
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log('✅ Service Worker зарегистрирован'))
-      .catch(err => console.log('Ошибка SW:', err));
-  }
-</script>
-
+    // Установка Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
 </body>
 </html>
