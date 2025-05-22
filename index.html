@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <title>Часы / Секундомер</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log("✅ Service Worker зарегистрирован"))
+      .catch(err => console.error("❌ Service Worker ошибка:", err));
+  }
+</script>
+
   <style>
     html, body {
       margin: 0;
