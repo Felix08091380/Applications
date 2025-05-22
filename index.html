@@ -1,272 +1,125 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Часы / Секундомер</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-  <link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log("✅ Service Worker зарегистрирован"))
-      .catch(err => console.error("❌ Service Worker ошибка:", err));
-  }
-</script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Игра Лабиринт</title>
   <style>
     html, body {
       margin: 0;
-      padding: 0;
-      background: #0e0e0e;
-      color: #fff;
-      font-family: sans-serif;
+      background: #111;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    header {
-      margin-top: 1rem;
-    }
-
-    select {
-      padding: 0.5rem;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: none;
-      background: #222;
-      color: #fff;
-    }
-
-    .screen {
-      flex: 1;
-      display: none;
       align-items: center;
       justify-content: center;
-      width: 100%;
-    }
-
-    .active {
-      display: flex;
-    }
-
-    /* Аналоговые часы */
-    .clock {
-      position: relative;
-      width: 300px;
-      height: 300px;
-      border: 8px solid #ffffff10;
-      border-radius: 50%;
-      background: radial-gradient(#1a1a1a, #0e0e0e);
-      box-shadow: inset 0 0 30px #000, 0 0 20px #4f46e5;
-    }
-
-    .center-dot {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background: #ffffff;
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-    }
-
-    .hand {
-      position: absolute;
-      bottom: 50%;
-      left: 50%;
-      transform-origin: bottom;
-      transform: translateX(-50%) rotate(0deg);
-      background: #fff;
-      border-radius: 4px;
-    }
-
-    .hour { width: 6px; height: 70px; background: #ffffffcc; z-index: 3; }
-    .minute { width: 4px; height: 100px; background: #4f46e5; z-index: 2; }
-    .second { width: 2px; height: 120px; background: #f44336; z-index: 1; }
-
-    .number {
-      position: absolute;
-      color: #bbb;
-      font-size: 1.2rem;
-      font-weight: bold;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Цифровые часы */
-    .digital-clock {
-      font-size: 3rem;
-      letter-spacing: 0.1em;
-    }
-
-    /* Секундомер */
-    .stopwatch {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .stopwatch-time {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-
-    .stopwatch-buttons button {
-      margin: 0.25rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: none;
-      background: #4f46e5;
+      height: 100vh;
+      font-family: sans-serif;
       color: white;
     }
 
+    canvas {
+      background: #000;
+      border: 2px solid #444;
+      image-rendering: pixelated;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 1rem;
+    }
+
+    .controls button {
+      background: #222;
+      color: #fff;
+      font-size: 1.5rem;
+      padding: 1rem;
+      border: none;
+      border-radius: 12px;
+    }
+
+    .empty {
+      visibility: hidden;
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <select id="modeSwitcher">
-      <option value="analog">Аналоговые часы</option>
-      <option value="digital">Цифровые часы</option>
-      <option value="stopwatch">Секундомер</option>
-    </select>
-  </header>
+<canvas id="gameCanvas" width="320" height="320"></canvas>
 
-  <!-- Аналоговые часы -->
-  <div class="screen active" id="analog">
-    <div class="clock">
-      <div class="center-dot"></div>
-      <div class="hand hour" id="hourHand"></div>
-      <div class="hand minute" id="minuteHand"></div>
-      <div class="hand second" id="secondHand"></div>
-      <div class="numbers" id="clockNumbers"></div>
-    </div>
-  </div>
+<div class="controls">
+  <div class="empty"></div>
+  <button onclick="move('up')">⬆️</button>
+  <div class="empty"></div>
+  <button onclick="move('left')">⬅️</button>
+  <button onclick="move('down')">⬇️</button>
+  <button onclick="move('right')">➡️</button>
+</div>
 
-  <!-- Цифровые часы -->
-  <div class="screen" id="digital">
-    <div class="digital-clock" id="digitalClock">00:00:00</div>
-  </div>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
 
-  <!-- Секундомер -->
-  <div class="screen" id="stopwatch">
-    <div class="stopwatch">
-      <div class="stopwatch-time" id="stopwatchTime">00:00:00.0</div>
-      <div class="stopwatch-buttons">
-        <button id="startStop">Старт</button>
-        <button id="reset">Сброс</button>
-      </div>
-    </div>
-  </div>
+  const tileSize = 32;
+  const maze = [
+    "##############",
+    "#P     #     #",
+    "# ### ### ## #",
+    "#   #     #  #",
+    "### # #### # #",
+    "#   #      #E#",
+    "# ### #######",
+    "#     #      #",
+    "##############"
+  ];
 
-  <script>
-    const modeSwitcher = document.getElementById('modeSwitcher');
-    const screens = {
-      analog: document.getElementById('analog'),
-      digital: document.getElementById('digital'),
-      stopwatch: document.getElementById('stopwatch')
-    };
+  let player = { x: 1, y: 1 };
 
-    modeSwitcher.addEventListener('change', () => {
-      Object.values(screens).forEach(el => el.classList.remove('active'));
-      screens[modeSwitcher.value].classList.add('active');
-    });
-
-    // Аналоговые часы
-    const hourHand = document.getElementById('hourHand');
-    const minuteHand = document.getElementById('minuteHand');
-    const secondHand = document.getElementById('secondHand');
-    const clockNumbers = document.getElementById('clockNumbers');
-
-    for (let i = 1; i <= 12; i++) {
-      const angle = (i - 3) * 30 * Math.PI / 180;
-      const radius = 130;
-      const x = 150 + radius * Math.cos(angle);
-      const y = 150 + radius * Math.sin(angle);
-      const div = document.createElement('div');
-      div.className = 'number';
-      div.style.left = `${x}px`;
-      div.style.top = `${y}px`;
-      div.textContent = i;
-      clockNumbers.appendChild(div);
-    }
-
-    function updateAnalogClock() {
-      const now = new Date();
-      const h = now.getHours();
-      const m = now.getMinutes();
-      const s = now.getSeconds();
-
-      hourHand.style.transform = `translateX(-50%) rotate(${((h % 12) + m / 60) * 30}deg)`;
-      minuteHand.style.transform = `translateX(-50%) rotate(${(m + s / 60) * 6}deg)`;
-      secondHand.style.transform = `translateX(-50%) rotate(${s * 6}deg)`;
-    }
-
-    setInterval(updateAnalogClock, 1000);
-    updateAnalogClock();
-
-    // Цифровые часы
-    const digitalClock = document.getElementById('digitalClock');
-
-    function updateDigitalClock() {
-      const now = new Date();
-      const pad = num => String(num).padStart(2, '0');
-      digitalClock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    }
-
-    setInterval(updateDigitalClock, 1000);
-    updateDigitalClock();
-
-    // Секундомер
-    let stopwatchRunning = false;
-    let stopwatchStart = 0;
-    let elapsed = 0;
-    const stopwatchTime = document.getElementById('stopwatchTime');
-    const startStop = document.getElementById('startStop');
-    const reset = document.getElementById('reset');
-
-    function formatTime(ms) {
-      const totalSec = Math.floor(ms / 1000);
-      const msPart = Math.floor((ms % 1000) / 100);
-      const sec = totalSec % 60;
-      const min = Math.floor(totalSec / 60) % 60;
-      const hr = Math.floor(totalSec / 3600);
-      const pad = n => String(n).padStart(2, '0');
-      return `${pad(hr)}:${pad(min)}:${pad(sec)}.${msPart}`;
-    }
-
-    function updateStopwatch() {
-      if (stopwatchRunning) {
-        const now = Date.now();
-        stopwatchTime.textContent = formatTime(now - stopwatchStart + elapsed);
+  function drawMaze() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let y = 0; y < maze.length; y++) {
+      for (let x = 0; x < maze[y].length; x++) {
+        const cell = maze[y][x];
+        if (cell === "#") {
+          ctx.fillStyle = "#00aa00"; // стены — зелёные
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        } else if (cell === "E") {
+          ctx.fillStyle = "gold"; // выход
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
       }
     }
 
-    setInterval(updateStopwatch, 100);
+    // рисуем игрока
+    ctx.fillStyle = "red";
+    ctx.fillRect(player.x * tileSize + 4, player.y * tileSize + 4, tileSize - 8, tileSize - 8);
+  }
 
-    startStop.addEventListener('click', () => {
-      if (!stopwatchRunning) {
-        stopwatchRunning = true;
-        stopwatchStart = Date.now();
-        startStop.textContent = 'Стоп';
-      } else {
-        stopwatchRunning = false;
-        elapsed += Date.now() - stopwatchStart;
-        startStop.textContent = 'Старт';
+  function move(direction) {
+    const dx = { left: -1, right: 1, up: 0, down: 0 }[direction];
+    const dy = { left: 0, right: 0, up: -1, down: 1 }[direction];
+
+    const newX = player.x + dx;
+    const newY = player.y + dy;
+
+    const cell = maze[newY]?.[newX];
+
+    if (cell && cell !== "#") {
+      player.x = newX;
+      player.y = newY;
+      if (cell === "E") {
+        setTimeout(() => {
+          alert("🎉 Победа! Ты нашёл выход!");
+        }, 100);
       }
-    });
+    }
 
-    reset.addEventListener('click', () => {
-      stopwatchRunning = false;
-      elapsed = 0;
-      stopwatchTime.textContent = '00:00:00.0';
-      startStop.textContent = 'Старт';
-    });
-  </script>
+    drawMaze();
+  }
+
+  drawMaze();
+</script>
+
 </body>
 </html>
