@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Игра Лабиринт</title>
+  <title>Лабиринт</title>
   <style>
     html, body {
       margin: 0;
@@ -16,20 +16,17 @@
       font-family: sans-serif;
       color: white;
     }
-
     canvas {
       background: #000;
       border: 2px solid #444;
       image-rendering: pixelated;
     }
-
     .controls {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       margin-top: 1rem;
     }
-
     .controls button {
       background: #222;
       color: #fff;
@@ -38,7 +35,6 @@
       border: none;
       border-radius: 12px;
     }
-
     .empty {
       visibility: hidden;
     }
@@ -57,41 +53,76 @@
   <button onclick="move('right')">➡️</button>
 </div>
 
+<audio id="winSound" src="https://www.soundjay.com/button/sounds/button-4.mp3" preload="auto"></audio>
+
 <script>
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
-
   const tileSize = 32;
-  const maze = [
-    "##############",
-    "#P     #     #",
-    "# ### ### ## #",
-    "#   #     #  #",
-    "### # #### # #",
-    "#   #      #E#",
-    "# ### #######",
-    "#     #      #",
-    "##############"
-  ];
-
+  const rows = 11;
+  const cols = 11;
+  let maze = [];
   let player = { x: 1, y: 1 };
+  let end = { x: cols - 2, y: rows - 2 };
+
+  // Генерация пустого лабиринта
+  function initMaze() {
+    maze = Array.from({ length: rows }, (_, y) =>
+      Array.from({ length: cols }, (_, x) =>
+        (x % 2 === 1 && y % 2 === 1) ? " " : "#"
+      )
+    );
+
+    const stack = [{ x: 1, y: 1 }];
+    const visited = new Set(["1,1"]);
+
+    while (stack.length > 0) {
+      const current = stack[stack.length - 1];
+      const directions = [
+        { x: 0, y: -2 },
+        { x: 2, y: 0 },
+        { x: 0, y: 2 },
+        { x: -2, y: 0 },
+      ].sort(() => Math.random() - 0.5);
+
+      let carved = false;
+      for (const { x: dx, y: dy } of directions) {
+        const nx = current.x + dx;
+        const ny = current.y + dy;
+        if (
+          nx > 0 && ny > 0 &&
+          nx < cols - 1 && ny < rows - 1 &&
+          !visited.has(`${nx},${ny}`)
+        ) {
+          maze[current.y + dy / 2][current.x + dx / 2] = " ";
+          visited.add(`${nx},${ny}`);
+          maze[ny][nx] = " ";
+          stack.push({ x: nx, y: ny });
+          carved = true;
+          break;
+        }
+      }
+
+      if (!carved) stack.pop();
+    }
+
+    maze[end.y][end.x] = "E";
+  }
 
   function drawMaze() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let y = 0; y < maze.length; y++) {
-      for (let x = 0; x < maze[y].length; x++) {
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
         const cell = maze[y][x];
         if (cell === "#") {
-          ctx.fillStyle = "#00aa00"; // стены — зелёные
+          ctx.fillStyle = "#00aa00";
           ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
         } else if (cell === "E") {
-          ctx.fillStyle = "gold"; // выход
+          ctx.fillStyle = "gold";
           ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
         }
       }
     }
-
-    // рисуем игрока
     ctx.fillStyle = "red";
     ctx.fillRect(player.x * tileSize + 4, player.y * tileSize + 4, tileSize - 8, tileSize - 8);
   }
@@ -102,23 +133,30 @@
 
     const newX = player.x + dx;
     const newY = player.y + dy;
-
     const cell = maze[newY]?.[newX];
 
     if (cell && cell !== "#") {
       player.x = newX;
       player.y = newY;
+      drawMaze();
+
       if (cell === "E") {
+        document.getElementById("winSound").play();
         setTimeout(() => {
           alert("🎉 Победа! Ты нашёл выход!");
-        }, 100);
+          startGame(); // начинаем заново
+        }, 300);
       }
     }
+  }
 
+  function startGame() {
+    initMaze();
+    player = { x: 1, y: 1 };
     drawMaze();
   }
 
-  drawMaze();
+  startGame();
 </script>
 
 </body>
