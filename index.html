@@ -42,7 +42,7 @@
 </head>
 <body>
 
-<canvas id="gameCanvas" width="320" height="320"></canvas>
+<canvas id="gameCanvas" width="420" height="420"></canvas>
 
 <div class="controls">
   <div class="empty"></div>
@@ -53,24 +53,24 @@
   <button onclick="move('right')">➡️</button>
 </div>
 
-<audio id="winSound" src="https://www.soundjay.com/button/sounds/button-4.mp3" preload="auto"></audio>
+<!-- 🔊 Звуки -->
+<audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_45c8260c78.mp3?filename=success-fanfare-trumpets-6185.mp3" preload="auto"></audio>
+<audio id="moveSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_e1e0d93e91.mp3?filename=click-124467.mp3" preload="auto"></audio>
 
 <script>
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
-  const tileSize = 32;
-  const rows = 11;
-  const cols = 11;
+
+  const tileSize = 20;
+  const rows = 21;
+  const cols = 21;
   let maze = [];
   let player = { x: 1, y: 1 };
   let end = { x: cols - 2, y: rows - 2 };
 
-  // Генерация пустого лабиринта
-  function initMaze() {
+  function generateMaze() {
     maze = Array.from({ length: rows }, (_, y) =>
-      Array.from({ length: cols }, (_, x) =>
-        (x % 2 === 1 && y % 2 === 1) ? " " : "#"
-      )
+      Array.from({ length: cols }, (_, x) => (x % 2 && y % 2) ? " " : "#")
     );
 
     const stack = [{ x: 1, y: 1 }];
@@ -79,10 +79,7 @@
     while (stack.length > 0) {
       const current = stack[stack.length - 1];
       const directions = [
-        { x: 0, y: -2 },
-        { x: 2, y: 0 },
-        { x: 0, y: 2 },
-        { x: -2, y: 0 },
+        { x: 0, y: -2 }, { x: 2, y: 0 }, { x: 0, y: 2 }, { x: -2, y: 0 }
       ].sort(() => Math.random() - 0.5);
 
       let carved = false;
@@ -102,7 +99,6 @@
           break;
         }
       }
-
       if (!carved) stack.pop();
     }
 
@@ -123,8 +119,14 @@
         }
       }
     }
+
+    // Рисуем игрока — круг
     ctx.fillStyle = "red";
-    ctx.fillRect(player.x * tileSize + 4, player.y * tileSize + 4, tileSize - 8, tileSize - 8);
+    const cx = player.x * tileSize + tileSize / 2;
+    const cy = player.y * tileSize + tileSize / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, tileSize / 2.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function move(direction) {
@@ -138,20 +140,21 @@
     if (cell && cell !== "#") {
       player.x = newX;
       player.y = newY;
+      document.getElementById("moveSound").play();
       drawMaze();
 
       if (cell === "E") {
-        document.getElementById("winSound").play();
         setTimeout(() => {
+          document.getElementById("winSound").play();
           alert("🎉 Победа! Ты нашёл выход!");
-          startGame(); // начинаем заново
+          startGame();
         }, 300);
       }
     }
   }
 
   function startGame() {
-    initMaze();
+    generateMaze();
     player = { x: 1, y: 1 };
     drawMaze();
   }
