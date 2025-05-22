@@ -56,13 +56,29 @@
       margin-top: 0.5rem;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      position: relative;
+    }
+    .note small {
+      display: block;
+      margin-top: 0.3rem;
+      color: #666;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #888;
     }
   </style>
 </head>
 <body>
   <header>Записная книжка</header>
   <main>
-    <textarea id="noteInput" placeholder="Введите заметку..."></textarea>
+    <textarea id="noteInput" placeholder="Например: 22 мая в 16:00 встреча в Самарканде"></textarea>
     <button onclick="saveNote()">Сохранить</button>
     <div id="notesList"></div>
   </main>
@@ -70,15 +86,52 @@
   <script>
     const notesKey = 'notes';
 
+    // Разрешение на уведомления
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+
+    function parseReminder(text) {
+      // Ищем фрагмент вида: "22 мая в 16:00"
+      const regex = /(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+в\s+(\d{1,2}):(\d{2})/i;
+      const match = text.match(regex);
+      if (!match) return null;
+
+      const day = parseInt(match[1]);
+      const monthNames = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      const month = monthNames.indexOf(match[2].toLowerCase());
+      const hour = parseInt(match[3]);
+      const minute = parseInt(match[4]);
+      const now = new Date();
+      const year = now.getFullYear();
+
+      const date = new Date(year, month, day, hour, minute);
+      return date.getTime() > now.getTime() ? date.getTime() : null;
+    }
+
     function saveNote() {
       const input = document.getElementById('noteInput');
       const text = input.value.trim();
       if (!text) return;
 
+      const reminderTime = parseReminder(text);
+
       const notes = JSON.parse(localStorage.getItem(notesKey)) || [];
-      notes.unshift({ text, timestamp: Date.now() });
+      notes.unshift({
+        id: Date.now(),
+        text,
+        timestamp: Date.now(),
+        reminder: reminderTime
+      });
       localStorage.setItem(notesKey, JSON.stringify(notes));
       input.value = '';
+      renderNotes();
+    }
+
+    function deleteNote(id) {
+      const notes = JSON.parse(localStorage.getItem(notesKey)) || [];
+      const updated = notes.filter(n => n.id !== id);
+      localStorage.setItem(notesKey, JSON.stringify(updated));
       renderNotes();
     }
 
@@ -90,6 +143,7 @@
         const div = document.createElement('div');
         div.className = 'note';
         div.innerHTML = `
+          <button class="delete-btn" onclick="deleteNote(${note.id})">🗑️</button>
           <div>${note.text}</div>
           <small>${new Date(note.timestamp).toLocaleString()}</small>
         `;
@@ -97,9 +151,27 @@
       }
     }
 
+    function checkReminders() {
+      const now = Date.now();
+      const notes = JSON.parse(localStorage.getItem(notesKey)) || [];
+      const updated = notes.map(note => {
+        if (note.reminder && now >= note.reminder && !note.notified) {
+          if (Notification.permission === 'granted') {
+            new Notification('Напоминание', {
+              body: note.text,
+              icon: 'icon-192.png'
+            });
+          }
+          note.notified = true;
+        }
+        return note;
+      });
+      localStorage.setItem(notesKey, JSON.stringify(updated));
+    }
+
+    setInterval(checkReminders, 60000); // проверяем каждую минуту
     renderNotes();
 
-    // Установка Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }
