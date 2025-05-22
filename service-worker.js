@@ -1,24 +1,27 @@
-const CACHE_NAME = 'notebook-cache-v1';
-const FILES_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
-];
+function checkReminders() {
+  const now = Date.now();
+  const notes = JSON.parse(localStorage.getItem(notesKey)) || [];
+  let updated = false;
 
-// Кэширование при установке
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
-  );
-});
+  for (let note of notes) {
+    if (note.reminder && now >= note.reminder && !note.notified) {
+      // Показываем уведомление
+      if (Notification.permission === 'granted') {
+        new Notification('Напоминание', {
+          body: note.text,
+          icon: 'icon-192.png'
+        });
+      } else {
+        alert('🔔 Напоминание: ' + note.text);
+      }
 
-// Работа в оффлайне
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
-  );
-});
+      note.notified = true;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    localStorage.setItem(notesKey, JSON.stringify(notes));
+    renderNotes();
+  }
+}
