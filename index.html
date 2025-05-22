@@ -2,22 +2,31 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+
+  <!-- Для iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+
   <title>Календарь</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
       background: #f7f9fc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
     }
     .calendar {
-      background: white;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-      border-radius: 16px;
-      overflow: hidden;
-      width: 320px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     .calendar-header {
       display: flex;
@@ -36,6 +45,8 @@
     }
     .calendar-body {
       padding: 1em;
+      flex-grow: 1;
+      overflow: auto;
     }
     .day-names, .days {
       display: grid;
@@ -80,34 +91,26 @@
 <script>
   const monthYearLabel = document.getElementById('month-year');
   const calendarDays = document.getElementById('calendar-days');
-
   let currentDate = new Date();
 
   function renderCalendar() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-
-    const startDay = (firstDayOfMonth.getDay() + 6) % 7; // Monday = 0
-    const totalDays = lastDayOfMonth.getDate();
-
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = (firstDay.getDay() + 6) % 7;
+    const totalDays = lastDay.getDate();
     const today = new Date();
-    const isToday = (d) =>
-      d === today.getDate() &&
-      month === today.getMonth() &&
-      year === today.getFullYear();
 
-    monthYearLabel.textContent = `${firstDayOfMonth.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
+    monthYearLabel.textContent = `${firstDay.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
     calendarDays.innerHTML = '';
 
-    for (let i = 0; i < startDay; i++) {
-      calendarDays.innerHTML += `<div></div>`;
-    }
-
+    for (let i = 0; i < startDay; i++) calendarDays.innerHTML += '<div></div>';
     for (let i = 1; i <= totalDays; i++) {
-      calendarDays.innerHTML += `<div class="${isToday(i) ? 'today' : ''}">${i}</div>`;
+      const isToday = i === today.getDate() &&
+                      month === today.getMonth() &&
+                      year === today.getFullYear();
+      calendarDays.innerHTML += `<div class="${isToday ? 'today' : ''}">${i}</div>`;
     }
   }
 
@@ -117,6 +120,13 @@
   }
 
   renderCalendar();
+
+  // ✅ PWA Service Worker регистрация
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('✅ Service Worker зарегистрирован'))
+      .catch(err => console.log('Ошибка SW:', err));
+  }
 </script>
 
 </body>
